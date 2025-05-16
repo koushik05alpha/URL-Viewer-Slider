@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>URL Viewer & Slider</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        padding: 0;
+        margin: 0;
+        background: #333;
+        color: #fff;
+        display: flex;
+      }
+
+      .container {
+        padding: 30px;
+        max-width: 700px;
+        margin: auto;
+      }
+
+      textarea {
+        width: 100%;
+        height: 250px;
+        font-size: 14px;
+        padding: 10px;
+        box-sizing: border-box;
+        margin-bottom: 10px;
+      }
+
+      button {
+        margin-top: 10px;
+        padding: 10px 20px;
+        font-size: 16px;
+        background-color: #28a745;
+        color: white;
+        border: none;
+        cursor: pointer;
+      }
+
+      button:hover {
+        background-color: #218838;
+      }
+
+      .invalid-list {
+        margin-top: 10px;
+        font-size: 14px;
+        color: #ff6961;
+      }
+
+      .slider-section {
+        display: none;
+        height: 100vh;
+        width: 100vw;
+        overflow: hidden;
+        position: fixed;
+        top: 0;
+        left: 0;
+        background-color: #454545;
+      }
+
+      .layout {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100%;
+        width: 100%;
+      }
+
+      .left-counterBox,
+      .right-answerbox {
+        width: 15%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        gap: 35px;
+      }
+
+      .left-counterBox h4 {
+        padding: 20px;
+        background: #222;
+        border-radius: 10px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+        text-align: center;
+      }
+
+      .right-answerbox button {
+        width: 100px;
+        padding: 10px;
+        background-color: #666;
+        color: #fff;
+        border: none;
+        border-radius: 5px;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+        cursor: pointer;
+      }
+
+      .right-answerbox button:hover {
+        background-color: #888;
+      }
+
+      .slider {
+        position: relative;
+        width: 70%;
+        height: 600px;
+        margin: auto;
+        top: 50%;
+        transform: translateY(-50%);
+        border-radius: 10px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+        overflow: hidden;
+      }
+
+      .slides {
+        display: flex;
+        transition: transform 0.5s ease-in-out;
+        height: 100%;
+      }
+
+      .slide {
+        min-width: 100%;
+        height: 100%;
+      }
+
+      .slide iframe {
+        width: 100%;
+        height: 100%;
+        border: none;
+      }
+
+      .arrow {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        background-color: rgba(0, 0, 0, 0.5);
+        color: white;
+        border: none;
+        padding: 10px;
+        cursor: pointer;
+        z-index: 10;
+      }
+
+      .arrow.left {
+        left: 10px;
+      }
+
+      .arrow.right {
+        right: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Input Section -->
+    <div class="container" id="inputSection">
+      <h2>You Entered <span id="urlCount">0</span> URL(s)</h2>
+      <textarea
+        id="urlBox"
+        placeholder="Paste URLs here..."
+        oninput="updateCount()"
+      ></textarea>
+      <button onclick="showSlider()">Open in Iframe Slider</button>
+      <div id="invalidUrls" class="invalid-list"></div>
+    </div>
+
+    <!-- Slider Section -->
+    <div class="slider-section" id="sliderSection">
+      <div class="layout">
+        <!-- Left Info Panel -->
+        <div class="left-counterBox">
+          <h4>Number<br /><br /><span id="imagesNumber">0</span></h4>
+          <h4>
+            URL Last 5 Digits<br /><br /><span id="urlLestDigit">0</span>
+          </h4>
+        </div>
+
+        <!-- Main Slider -->
+        <div class="slider">
+          <button class="arrow left" onclick="moveSlide(-1)">&#10094;</button>
+          <div class="slides" id="slides"></div>
+          <button class="arrow right" onclick="moveSlide(1)">&#10095;</button>
+        </div>
+
+        <!-- Right Answer Panel -->
+        <div class="right-answerbox">
+          <button>Pass</button>
+          <button>Fail</button>
+          <button>Mix</button>
+          <button>Edge</button>
+          <button>Error</button>
+          <button>Confusion</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const urlBox = document.getElementById("urlBox");
+      const maxUrls = 100;
+      let currentIndex = 0;
+      let validUrls = [];
+
+      function getUrls(inputText) {
+        const lines = inputText
+          .split("\n")
+          .map((line) => line.trim())
+          .filter((line) => line.length > 0);
+        const urlRegex = /^(https?:\/\/[^\s]+)$/i;
+        const valid = lines
+          .filter((line) => urlRegex.test(line))
+          .slice(0, maxUrls);
+        const invalid = lines.filter((line) => !urlRegex.test(line));
+        return {
+          validUrls: valid,
+          all: lines.slice(0, maxUrls),
+          invalidUrls: invalid,
+        };
+      }
+
+      function updateCount() {
+        const { all, invalidUrls } = getUrls(urlBox.value);
+        document.getElementById("urlCount").textContent = all.length;
+
+        const invalidDiv = document.getElementById("invalidUrls");
+        if (invalidUrls.length > 0) {
+          invalidDiv.innerHTML = `<strong>Invalid URLs:</strong><br>${invalidUrls
+            .slice(0, 10)
+            .join("<br>")}`;
+        } else {
+          invalidDiv.innerHTML = "";
+        }
+      }
+
+      function showSlider() {
+        const result = getUrls(urlBox.value);
+        validUrls = result.validUrls;
+
+        if (validUrls.length === 0) {
+          alert(
+            "Please enter at least one valid URL starting with http:// or https://"
+          );
+          return;
+        }
+
+        document.getElementById("inputSection").style.display = "none";
+        document.getElementById("sliderSection").style.display = "block";
+
+        const slidesContainer = document.getElementById("slides");
+        slidesContainer.innerHTML = "";
+
+        validUrls.forEach((url) => {
+          const slide = document.createElement("div");
+          slide.className = "slide";
+          const iframe = document.createElement("iframe");
+          iframe.src = url;
+          slide.appendChild(iframe);
+          slidesContainer.appendChild(slide);
+        });
+
+        currentIndex = 0;
+        slidesContainer.style.transform = `translateX(0%)`;
+        updateInfo();
+      }
+
+      function moveSlide(direction) {
+        const totalSlides = validUrls.length;
+        if (totalSlides === 0) return;
+
+        currentIndex = (currentIndex + direction + totalSlides) % totalSlides;
+        const slidesContainer = document.getElementById("slides");
+        slidesContainer.style.transform = `translateX(-${currentIndex * 100}%)`;
+        updateInfo();
+      }
+
+      function updateInfo() {
+        document.getElementById("imagesNumber").textContent = `${
+          currentIndex + 1
+        } / ${validUrls.length}`;
+        const currentUrl = validUrls[currentIndex];
+        const last10Chars = currentUrl.slice(-5);
+        document.getElementById("urlLestDigit").textContent = last10Chars;
+      }
+    </script>
+  </body>
+</html>
